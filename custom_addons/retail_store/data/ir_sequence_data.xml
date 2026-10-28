@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_store_stock_request" model="ir.sequence">
+            <field name="name">Store Stock Request Sequence</field>
+            <!-- 1. This MUST match the string inside your python next_by_code() -->
+            <field name="code">store.stock.request</field>
+            <!-- 2. The prefix for your document numbers -->
+            <field name="prefix">SR-</field>
+            <!-- 3. Number of digits (e.g., SR-00001) -->
+            <field name="padding">5</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

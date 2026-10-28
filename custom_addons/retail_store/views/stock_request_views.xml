@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!-- Stock Request Form View -->
+    <record id="view_store_request_form" model="ir.ui.view">
+        <field name="name">store.stock.request.form</field>
+        <field name="model">store.stock.request</field>
+        <field name="arch" type="xml">
+            <form string="Stock Request">
+                <header>
+                    <!-- RESTRICTED: Employees & Managers can Submit -->
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight"
+                            invisible="state != 'draft'"
+                            groups="retail_store.group_retail_store_employee,retail_store.group_retail_store_manager"/>
+
+                    <!-- RESTRICTED: Managers & Admins can Approve -->
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight"
+                            invisible="state != 'submitted'"
+                            groups="retail_store.group_retail_store_manager,retail_store.group_retail_administrator"/>
+
+                    <!-- Chapter 3/4 -->
+                    <button name = "action_create_purchase_order"
+                            string="Create Purchase Order"
+                            type="object"
+                            clas="oe_highlight"
+                            invisible="state not in ['submitted', 'approved'] or purchase_order_id"/>
+                    />
+
+                    <!-- RESTRICTED: Managers & Admins can Reject -->
+                    <button name="action_reject" string="Reject" type="object" class="btn-secondary"
+                            invisible="state != 'submitted'"
+                            groups="retail_store.group_retail_store_manager,retail_store.group_retail_administrator"/>
+
+                    <!-- RESTRICTED: Warehouse Staff & Admins can Mark as Done -->
+                    <button name="action_done" string="Mark as Done" type="object" class="oe_highlight"
+                            invisible="state != 'approved'"
+                            groups="retail_store.group_retail_warehouse_staff,retail_store.group_retail_administrator"/>
+
+                    <!-- RESTRICTED: Managers & Admins can Cancel -->
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state in ('done', 'cancel')"
+                            groups="retail_store.group_retail_store_manager,retail_store.group_retail_administrator"/>
+
+                    <!-- RESTRICTED: Managers & Admins can Reset to Draft -->
+                    <button name="action_draft" string="Reset to Draft" type="object"
+                            invisible="state != 'cancel'"
+                            groups="retail_store.group_retail_store_manager,retail_store.group_retail_administrator"/>
+
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <field name="picking_id" invisible="1"/>
+
+                        <button name="action_show_picking"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-truck"
+                                invisible="not picking_id">
+                            <field name="picking_count" widget="statinfo" string="Transfer"/>
+                        </button>
+
+                        <button name="action_show_purchase_order"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-shopping-cart"
+                                invisible="not purchase_order_id">
+                            <field name="purchase_order_id" widget="statinfo" string="Purchase Order"/>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Request Details">
+                            <field name="store_id" readonly="state != 'draft'"/>
+                            <field name="warehouse_id" readonly="state != 'draft'"/>
+                            <field name="destination_warehouse_id" readonly="state != 'draft'"/>
+                        </group>
+                        <group string="Audit &amp; Date">
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
+                            <field name="user_id" readonly="1"/>
+                            <field name="employee_id" readonly="state != 'draft'"/>
+                            <field name="request_date" readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Requested Products">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <!-- Invisible helper field to deliver dynamically computed allowed units to UI -->
+                                    <field name="allowed_uom_ids" column_invisible="1"/>
+                                    <field name="product_id" readonly="parent.state != 'draft'"/>
+                                    <field name="qty_requested" readonly="parent.state != 'draft'"/>
+                                    <field name="qty_approved" readonly="parent.state != 'submitted'"/>
+                                    <!-- Restrict UoM selection to compatible units only -->
+                                    <field name="uom_id" domain="[('id', 'in', allowed_uom_ids)]" readonly="0"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Stock Request List View -->
+    <record id="view_store_stock_request_list" model="ir.ui.view">
+        <field name="name">store.stock.request.list</field>
+        <field name="model">store.stock.request</field>
+        <field name="arch" type="xml">
+            <list string="Stock Requests">
+                <field name="name"/>
+                <field name="store_id"/>
+                <field name="warehouse_id"/>
+                <field name="destination_warehouse_id"/>
+                <field name="request_date"/>
+                <field name="user_id"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-primary="state == 'approved'"
+                       decoration-success="state == 'done'"
+                       decoration-danger="state == 'cancel'"
+                />
+            </list>
+        </field>
+    </record>
+
+    <!-- Stock Request Search View -->
+    <record id="view_store_stock_request_search" model="ir.ui.view">
+        <field name="name">store.stock.request.search</field>
+        <field name="model">store.stock.request</field>
+        <field name="arch" type="xml">
+            <search string="Search Stock Requests">
+                <field name="name"/>
+                <field name="store_id"/>
+                <field name="user_id"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Submitted" name="submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Done" name="done" domain="[('state', '=', 'done')]"/>
+                <group>
+                    <filter string="Store" name="group_by_store" context="{'group_by': 'store_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Request Date" name="group_by_date" context="{'group_by': 'request_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Window Action -->
+    <record id="action_store_stock_request" model="ir.actions.act_window">
+        <field name="name">Stock Requests</field>
+        <field name="res_model">store.stock.request</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- 3. Parent Menu Header (Container with NO action attribute) -->
+    <menuitem id="menu_store_stock_request_parent"
+              name="Stock Requests"
+              parent="retail_store.menu_retail_root"
+              sequence="20"/>
+
+    <!-- 4. Sub-Menu 1: Opens the Stock Requests List View -->
+    <menuitem id="menu_store_stock_request_list"
+              name="Stock Requests"
+              parent="menu_store_stock_request_parent"
+              action="action_store_stock_request"
+              sequence="10"/>
+
+    <!-- 5. Sub-Menu 2: Opens the Batch Replenishment Wizard -->
+    <menuitem id="menu_stock_replenishment_wizard"
+              name="Batch Replenishment"
+              parent="menu_store_stock_request_parent"
+              action="action_stock_replenishment_wizard"
+              sequence="20"/>
+</odoo>

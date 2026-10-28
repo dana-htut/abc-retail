@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_users_form_inherit_retail" model="ir.ui.view">
+        <field name="name">res.users.form.inherit.retail</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <!-- Target the phone field row layout wrapper inside the title profile block -->
+            <xpath expr="//h5[@name='h5_phone']" position="after">
+                <div class="d-flex align-items-baseline mb-0">
+                    <i class="fa fa-fw fa-building me-1 text-primary" title="Store Branch"/>
+                    <field name="store_id" class="w-75" placeholder="Select Store Branch..."/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

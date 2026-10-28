@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List View -->
+    <record id="view_store_reorder_rule_list" model="ir.ui.view">
+        <field name="name">store.reorder.rule.list</field>
+        <field name="model">store.reorder.rule</field>
+        <field name="arch" type="xml">
+            <list string="Reorder Rules" editable="bottom">
+                <header>
+                    <button name="action_generate_stock_request"
+                            string="Run Replenishment"
+                            type="object"
+                            class="btn-primary"
+                    />
+                </header>
+                <field name="store_id"/>
+                <field name="product_id"/>
+                <field name="min_qty"/>
+                <field name="max_qty"/>
+                <field name="current_qty"/>
+                <field name="state" widget="badge"
+                decoration-success="state == 'normal'"
+                       decoration-warning="state == 'low'"
+                       decoration-danger="state == 'reorder'"
+                />
+            </list>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_store_reorder_rule_search" model="ir.ui.view">
+    <field name="name">store.reorder.rule.search</field>
+    <field name="model">store.reorder.rule</field>
+    <field name="arch" type="xml">
+        <search string="Search Reorder Rules">
+            <field name="product_id"/>
+            <field name="store_id"/>
+            <separator/>
+            <filter string="Store" name="group_store" context="{'group_by': 'store_id'}"/>
+        </search>
+    </field>
+</record>
+
+    <!-- Action -->
+    <record id="action_store_reorder_rule" model="ir.actions.act_window">
+        <field name="name">Reorder Rules</field>
+        <field name="res_model">store.reorder.rule</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menu Item -->
+    <menuitem id="menu_store_reorder_rule"
+              name="Reorder Rules"
+              parent="retail_store.menu_retail_root"
+              action="action_store_reorder_rule"
+              sequence="30"/>
+</odoo>

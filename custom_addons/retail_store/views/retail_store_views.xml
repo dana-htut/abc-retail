@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_retail_store_list" model="ir.ui.view">
+        <field name="name">retail.store.list</field>
+        <field name="model">retail.store</field>
+        <field name="arch" type="xml">
+            <list string="Retail Stores">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="manager_id"/>
+                <field name="warehouse_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="opening_date"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'open'" decoration-danger="state == 'closed'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_retail_store_form" model="ir.ui.view">
+        <field name="name">retail.store.form</field>
+        <field name="model">retail.store</field>
+        <field name="arch" type="xml">
+            <form string="Retail Store">
+                <header>
+                    <!-- FIXED: Added groups attribute to restrict store lifecycle buttons to Administrators-->
+                    <button name="action_open" string="Open Store" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_close" string="Close Store" type="object" invisible="state != 'open'"/>
+
+                    <!--FIXED: Corrected invisible condition from state != 'draft' to state != 'closed' so reset works -->
+                    <button name="action_draft" string="Reset to Draft" type="object" invisible="state != 'closed'"/>
+                    <field name="state" widget="statusbar"/>
+                 <button name="action_run_replenishment_check"
+                            string="Run Replenishment Check"
+                            type="object"
+                            class="btn-primary"
+                         groups="retail_store.group_retail_store_manager"
+                    /></header>
+                <sheet>
+                    <div class="oe_title">
+                    <h1>
+                        <field name="code" readonly="1"/>
+                    </h1>
+                    <h2>
+                        <!-- FIXED: Made store name editable only when in draft or managed by Admin/Manager-->
+                        <field name="name" placeholder="e.g. Yangon Flagship Store" readonly="state != 'draft'"/>
+                    </h2>
+                </div>
+                    <group>
+                        <group string="Store Information">
+                            <!-- FIXED: Restricted manager and warehouse modifications to Managers/Admins -->
+                            <field name="manager_id" readonly="state != 'draft'" groups="retail_store.group_retail_store_manager,retail_store.group_retail_administrator"/>
+                            <field name="warehouse_id" readonly="state != 'draft'" domain="[('company_id', '=', company_id)]" groups="retail_store.group_retail_administrator"/>
+                            <field name="location" readonly="state == 'closed'"/>
+                        </group>
+                        <group string="Operational Details">
+                            <field name="opening_date" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_retail_store_search" model="ir.ui.view">
+        <field name="name">retail.store.search</field>
+        <field name="model">retail.store</field>
+        <field name="arch" type="xml">
+            <search string="Search Retail Stores">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="manager_id"/>
+                <filter string="Active Stores" name="open_stores" domain="[('state', '=', 'open')]"/>
+                <group>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Manager" name="group_by_manager" context="{'group_by':'manager_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_retail_store" model="ir.actions.act_window">
+        <field name="name">Stores</field>
+        <field name="res_model">retail.store</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first retail store!</p>
+        </field>
+    </record>
+
+     <menuitem id="menu_retail_root" name="Retail Management" sequence="10"/>
+    <!-- FIXED: Hidden entire Configuration menu from Store Employees-->
+    <menuitem id="menu_retail_config" name="Configuration" parent="menu_retail_root" sequence="100"/>
+    <menuitem id="menu_retail_store" name="Stores" parent="menu_retail_config" action="action_retail_store" sequence="10"/>
+</odoo>

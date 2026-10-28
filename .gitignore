@@ -1,0 +1,12 @@
+# Local virtual env and IDE settings
+.venv/
+.junie/
+.idea/
+.vscode/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Local log files
+*.log

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!-- Wizard Form View -->
+    <record id="view_stock_replenishment_form" model="ir.ui.view">
+        <field name="name">stock.replenishment.wizard.form</field>
+        <field name="model">stock.replenishment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Batch Replenishment Wizard">
+                <group col="2">
+                    <group>
+                        <label for="store_id" string="Target Store"/>
+                        <div class="o_row">
+                         <field name="store_id" options="{'no_create': True}"/>
+                         <button name="action_populate_lines" string="Fetch Items" type="object" class="btn-secondary ms-2"/>
+                        </div>
+                    </group>
+                    <group>
+                        <field name="destination_warehouse_id" required="1" options="{'no_create': True}"/>
+                    </group>
+                </group>
+
+                <p class="text-muted">
+                    Review low-stock items across stores. Adjust the <b>Qty to Request</b> column as needed before generating draft stock requests.
+                </p>
+
+                <field name="line_ids">
+                    <list editable="bottom" create="false">
+                        <field name="store_id" readonly="1"/>
+                        <field name="product_id" readonly="1"/>
+                        <field name="current_qty" readonly="1"/>
+                        <field name="pending_qty" readonly="1"/>
+                        <field name="min_qty" readonly="1"/>
+                        <field name="max_qty" readonly="1"/>
+                        <field name="suggested_qty" readonly="1"/>
+                        <field name="qty_to_request"/>
+                    </list>
+                </field>
+
+                <footer>
+                    <button name="action_generate_requests" string="Generate Stock Requests" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Wizard Action Window -->
+    <record id="action_stock_replenishment_wizard" model="ir.actions.act_window">
+        <field name="name">Batch Replenishment Wizard</field>
+        <field name="res_model">stock.replenishment.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

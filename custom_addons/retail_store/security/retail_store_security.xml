@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- ==================== SECURITY CATEGORY ==================== -->
+        <record id="module_category_retail_management" model="ir.module.category">
+            <field name="name">Retail Management</field>
+            <field name="description">User roles and permissions for retail store and stock management.</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <!-- ==================== ODOO 19 PRIVILEGES ==================== -->
+        <record id="privilege_retail_employee" model="res.groups.privilege">
+            <field name="name">Store Employee</field>
+            <field name="category_id" ref="module_category_retail_management"/>
+        </record>
+
+        <record id="privilege_retail_manager" model="res.groups.privilege">
+            <field name="name">Store Manager</field>
+            <field name="category_id" ref="module_category_retail_management"/>
+        </record>
+
+        <record id="privilege_retail_warehouse" model="res.groups.privilege">
+            <field name="name">Warehouse Staff</field>
+            <field name="category_id" ref="module_category_retail_management"/>
+        </record>
+
+        <record id="privilege_retail_admin" model="res.groups.privilege">
+            <field name="name">Administrator</field>
+            <field name="category_id" ref="module_category_retail_management"/>
+        </record>
+
+        <!-- ==================== USER GROUPS ==================== -->
+
+        <!-- 1. Store Employee Group -->
+        <record id="group_retail_store_employee" model="res.groups">
+            <field name="name">Store Employee</field>
+            <field name="privilege_id" ref="privilege_retail_employee"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">Can create stock requests, edit drafts, and submit requests for their store.</field>
+        </record>
+
+        <!-- 2. Store Manager Group -->
+        <record id="group_retail_store_manager" model="res.groups">
+            <field name="name">Store Manager</field>
+            <field name="privilege_id" ref="privilege_retail_manager"/>
+            <field name="implied_ids" eval="[(4, ref('retail_store.group_retail_store_employee'))]"/>
+            <field name="comment">Can approve or reject store stock requests submitted by employees.</field>
+        </record>
+
+        <!-- 3. Warehouse Staff Group -->
+        <record id="group_retail_warehouse_staff" model="res.groups">
+            <field name="name">Warehouse Staff</field>
+            <field name="privilege_id" ref="privilege_retail_warehouse"/>
+            <field name="implied_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+            <field name="comment">Can view approved stock requests, fulfill transfers, and mark delivered.</field>
+        </record>
+
+        <!-- 4. Administrator Group -->
+        <record id="group_retail_administrator" model="res.groups">
+            <field name="name">Administrator</field>
+            <field name="privilege_id" ref="privilege_retail_admin"/>
+            <field name="implied_ids" eval="[(4, ref('retail_store.group_retail_store_manager')), (4, ref('stock.group_stock_manager'))]"/>
+            <field name="comment">Full administrative access across all stores, stock requests, and configurations.</field>
+        </record>
+
+                                    <!-- MULTI-COMPANY GLOBAL RULES -->
+        <!-- Global Multi-Company Rule for Retail Stores -->
+        <record id="retail_store_company_rule" model="ir.rule">
+            <field name="name">Retail Store: Multi-Company Isolation</field>
+            <field name="model_id" ref="model_retail_store"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Global Multi-Company Rule for Stock Requests -->
+        <record id="store_stock_request_company_rule" model="ir.rule">
+            <field name="name">Store Stock Request: Multi-Company Isolation</field>
+            <field name="model_id" ref="model_store_stock_request"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+                                    <!-- STOCK REQUEST RULES -->
+        <!-- 1A. STORE EMPLOYEES ONLY RULE -->
+        <!-- Employees can ONLY see requests originating from THEIR own store -->
+        <record id="rule_store_stock_request_employees" model="ir.rule">
+            <field name="name">Store Stock Request: Employee Own Store Only</field>
+            <field name="model_id" ref="model_store_stock_request"/>
+            <field name="global" eval="False"/>
+            <field name="groups" eval="[(4, ref('retail_store.group_retail_store_employee'))]"/>
+            <field name="domain_force">[
+                ('store_id', '!=', False),
+                ('store_id', '=', user.store_id.id)
+            ]</field>
+        </record>
+
+        <!-- 1B. STORE MANAGERS RULE -->
+        <!-- Managers see requests from THEIR own store OR incoming requests targeting THEIR warehouse -->
+        <record id="rule_store_stock_request_managers" model="ir.rule">
+            <field name="name">Store Stock Request: Manager Source or Destination Access</field>
+            <field name="model_id" ref="model_store_stock_request"/>
+            <field name="global" eval="False"/>
+            <field name="groups" eval="[(4, ref('retail_store.group_retail_store_manager'))]"/>
+            <field name="domain_force">[
+                '|',
+                    '&amp;', ('store_id', '!=', False), ('store_id', '=', user.store_id.id),
+                    '&amp;', ('destination_warehouse_id', '!=', False), ('destination_warehouse_id', '=', user.store_id.warehouse_id.id)
+            ]</field>
+        </record>
+
+       <!-- 2. WAREHOUSE STAFF RULE -->
+        <record id="rule_store_stock_request_warehouse_staff" model="ir.rule">
+            <field name="name">Store Stock Request: Fulfilling Warehouse Staff Access</field>
+            <field name="model_id" ref="model_store_stock_request"/>
+            <field name="global" eval="False"/>
+            <field name="groups" eval="[(4, ref('group_retail_warehouse_staff'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">[
+                ('state', 'in', ('submitted', 'approved', 'done')),
+                '|',
+                '&amp;', ('store_id.warehouse_id', '!=', False), ('store_id.warehouse_id', '=', user.store_id.warehouse_id.id),
+                '&amp;', ('destination_warehouse_id', '!=', False), ('destination_warehouse_id', '=', user.store_id.warehouse_id.id)
+            ]</field>
+        </record>
+
+        <!-- 3. ADMINISTRATOR OVERRIDE RULE -->
+        <record id="rule_store_stock_request_admin_bypass" model="ir.rule">
+            <field name="name">Administrator: Full Stock Request Access</field>
+            <field name="model_id" ref="model_store_stock_request"/>
+            <field name="global" eval="False"/>
+            <field name="groups" eval="[(4, ref('retail_store.group_retail_administrator'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <!-- 4. STOCK PICKING WAREHOUSE STAFF RULE -->
+        <!-- 1. FULL ACCESS: Outbound Transfers originating from User's Warehouse (Can Validate) -->
+        <record id="rule_stock_picking_warehouse_staff_outbound" model="ir.rule">
+            <field name="name">Warehouse Staff: Outbound Transfers (Full Access)</field>
+            <field name="model_id" ref="stock.model_stock_picking"/>
+            <field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">
+                [(1, '=', 1)] if not user.store_id else [
+                    ('picking_type_id.warehouse_id', '=', user.store_id.warehouse_id.id)
+                ]
+            </field>
+        </record>
+  
+        <!-- 2. READ-ONLY ACCESS: Inbound Transfers destined for User's Warehouse (Cannot Edit/Validate) -->
+        <record id="rule_stock_picking_warehouse_staff_inbound_readonly" model="ir.rule">
+            <field name="name">Warehouse Staff: Inbound Transfers (Read Only)</field>
+            <field name="model_id" ref="stock.model_stock_picking"/>
+            <field name="groups" eval="[(4, ref('stock.group_stock_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">
+                [(1, '=', 1)] if not user.store_id else [
+                    ('location_dest_id', 'child_of', user.store_id.warehouse_id.view_location_id.id)
+                ]
+            </field>
+        </record>
+    </data>
+</odoo>
