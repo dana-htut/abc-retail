@@ -6,6 +6,8 @@
 ## 📌 Project Overview
 Custom Odoo 19 module designed to streamline multi-store inventory replenishment, automated reorder triggers, custom business rules, and interactive OWL dashboard analytics. Built with clean, modular Python backend models, custom web views, and automated CI quality checks.
 
+![OWL Dashboard Analytics](custom_addons/retail_store/static/description/dashboard.png)
+
 ---
 
 ## 🚀 Key Features & Technical Highlights
