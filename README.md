@@ -26,3 +26,10 @@ Custom Odoo 19 module designed to streamline multi-store inventory replenishment
 * **Frontend:** JavaScript (OWL Framework), XML, QWeb
 * **Database:** PostgreSQL
 * **Tooling & CI/CD:** Git, GitHub Actions, Ruff Linter/Formatter
+
+---
+
+## 🏗️ Architecture & Technical Decisions
+
+* **Technology Stack:** Built on **Odoo 19**, powered by **Python 3.12** backend models and **PostgreSQL** relational data management. The user interface incorporates custom **JavaScript / OWL (Odoo Web Library)** components for responsive, real-time data visualization.
+* **Automated CI/CD Pipeline:** Integrated **GitHub Actions** (`ruff.yml`) to enforce code standards automatically. Every pull request and push to integration branches runs static analysis and format validation via **Ruff**, ensuring clean, production-ready code before any merge to main.
