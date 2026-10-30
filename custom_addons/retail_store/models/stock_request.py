@@ -1,6 +1,4 @@
-import shelve
-
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 
@@ -13,7 +11,7 @@ class StoreStockRequest(models.Model):
     @api.model
     def _default_store_id(self):
         """Default to the current logged-in user's store."""
-        return self.env.user.store_id if hasattr(self.env.user, 'store_id') else False
+        return self.env.user.store_id if hasattr(self.env.user, "store_id") else False
 
     name = fields.Char(
         string="Request Reference",
@@ -28,7 +26,7 @@ class StoreStockRequest(models.Model):
         required=True,
         default=lambda self: self.env.company,
         tracking=True,
-        help="Company associated with this stock request."
+        help="Company associated with this stock request.",
     )
     store_id = fields.Many2one(
         "retail.store",
@@ -48,14 +46,14 @@ class StoreStockRequest(models.Model):
         "stock.warehouse",
         string="Supply Warehouse (CDC)",
         required=True,
-        help="Warehouse that will fulfill this request."
+        help="Warehouse that will fulfill this request.",
     )
     user_id = fields.Many2one(
         "res.users",
         string="Requested By",
         default=lambda self: self.env.user,
         required=True,
-        readonly=True
+        readonly=True,
     )
     employee_id = fields.Many2one(
         "hr.employee",
@@ -64,7 +62,7 @@ class StoreStockRequest(models.Model):
         store=True,
         readonly=False,
         tracking=True,
-        help="HR Employee record linked to the requesting user."
+        help="HR Employee record linked to the requesting user.",
     )
     request_date = fields.Date(
         string="Request Date",
@@ -76,7 +74,7 @@ class StoreStockRequest(models.Model):
             ("draft", "Draft"),
             ("submitted", "Submitted"),
             ("approved", "Approved"),
-            ('rejected', 'Rejected'),
+            ("rejected", "Rejected"),
             ("done", "Done"),
             ("cancel", "Cancelled"),
         ],
@@ -115,7 +113,7 @@ class StoreStockRequest(models.Model):
         string="Purchase Order",
         readonly=True,
         copy=False,
-        help="The external purchase order generated when supply warehouse stock was insufficient."
+        help="The external purchase order generated when supply warehouse stock was insufficient.",
     )
     purchase_count = fields.Integer(
         string="Purchase Orders Count",
@@ -145,15 +143,15 @@ class StoreStockRequest(models.Model):
     def _get_default_vendor(self):
         "Help method to find the specific demo vendor partner for purchase orders."
         # 1. Specifically look for demo general supplier first
-        vendor = self.env["res.partner"].search([
-            ("name", "ilike", "Demo General Supplier")
-        ], limit=1)
+        vendor = self.env["res.partner"].search(
+            [("name", "ilike", "Demo General Supplier")], limit=1
+        )
 
         # 2. If not found, look for any partner with supplier rank > 0
         if not vendor:
-            vendor = self.env["res.partner"].search([
-                ("supplier_rank", ">", 0)
-            ], limit=1)
+            vendor = self.env["res.partner"].search(
+                [("supplier_rank", ">", 0)], limit=1
+            )
 
         if not vendor:
             raise UserError(
@@ -167,10 +165,16 @@ class StoreStockRequest(models.Model):
         self.ensure_one()
 
         if self.purchase_order_id:
-            raise UserError(_("A Purchase Order has already been created for this request."))
+            raise UserError(
+                _("A Purchase Order has already been created for this request.")
+            )
 
         if self.state not in ["submitted", "approved"]:
-            raise UserError(_("You can only create a purchase order for submitted or approved requests."))
+            raise UserError(
+                _(
+                    "You can only create a purchase order for submitted or approved requests."
+                )
+            )
 
         # 1. Get default vendor using our helper method
         vendor = self._get_default_vendor()
@@ -181,27 +185,45 @@ class StoreStockRequest(models.Model):
 
         for line in self.line_ids.filtered(lambda l: l.qty_requested > 0.0):
             # Check available stock in supplying warehouse
-            quants = self.env["stock.quant"].sudo().search([
-                ("product_id", "=", line.product_id.id),
-                ("location_id", "child_of", source_location.id)
-            ])
-            available_qty = sum(quants.mapped("quantity")) - sum(quants.mapped("reserved_quantity")) # reserved_quantity = unvalidated ones
+            quants = (
+                self.env["stock.quant"]
+                .sudo()
+                .search(
+                    [
+                        ("product_id", "=", line.product_id.id),
+                        ("location_id", "child_of", source_location.id),
+                    ]
+                )
+            )
+            available_qty = sum(quants.mapped("quantity")) - sum(
+                quants.mapped("reserved_quantity")
+            )  # reserved_quantity = unvalidated ones
 
             # Calculate Shortage Qty = Requested Qty - Available Stock
             shortage_qty = line.qty_requested - available_qty
 
             if shortage_qty > 0.0:
-                po_lines.append((0, 0, {
-                    "product_id": line.product_id.id,
-                    "product_qty": shortage_qty,
-                    "product_uom_id": line.uom_id.id,
-                    "name": line.product_id.display_name,
-                    "date_planned": fields.Datetime.now(),
-                    "price_unit": line.product_id.standard_price or 0.0,
-                }))
+                po_lines.append(
+                    (
+                        0,
+                        0,
+                        {
+                            "product_id": line.product_id.id,
+                            "product_qty": shortage_qty,
+                            "product_uom_id": line.uom_id.id,
+                            "name": line.product_id.display_name,
+                            "date_planned": fields.Datetime.now(),
+                            "price_unit": line.product_id.standard_price or 0.0,
+                        },
+                    )
+                )
 
         if not po_lines:
-            raise UserError(_("There are no stock shortages for this request. All request quantities are available in the supply warehouse."))
+            raise UserError(
+                _(
+                    "There are no stock shortages for this request. All request quantities are available in the supply warehouse."
+                )
+            )
 
         # 3. Create the Purchase Order record
         po_vals = {
@@ -220,7 +242,8 @@ class StoreStockRequest(models.Model):
             body=_(
                 "Purchase Order <b><a href='#' data-oe-model='purchase.order' data-oe-id='%s'>%s</a></b> "
                 "was successfully created for stock shortages."
-            ) % (purchase_order.id, purchase_order.name)
+            )
+            % (purchase_order.id, purchase_order.name)
         )
 
         # 5. Return action window to open the newly created PO automatically
@@ -257,7 +280,9 @@ class StoreStockRequest(models.Model):
     def _compute_warehouse_id(self):
         """Auto-populate the source warehouse based on the selected open store."""
         for record in self:
-            record.warehouse_id = record.store_id.warehouse_id if record.store_id else False
+            record.warehouse_id = (
+                record.store_id.warehouse_id if record.store_id else False
+            )
 
     @api.depends("user_id")
     def _compute_employee_id(self):
@@ -274,7 +299,9 @@ class StoreStockRequest(models.Model):
         """Generate unique sequence reference number upon record creation."""
         for vals in vals_list:
             if vals.get("name", "New") == "New":
-                vals["name"] = self.env["ir.sequence"].next_by_code("store.stock.request") or "New"
+                vals["name"] = (
+                    self.env["ir.sequence"].next_by_code("store.stock.request") or "New"
+                )
         return super().create(vals_list)
 
     # === ACTION METHODS ===
@@ -285,10 +312,15 @@ class StoreStockRequest(models.Model):
 
         user_store = getattr(self.env.user, "store_id", False)
         if not user_store:
-            raise UserError("Access Denied: Your user profile is not assigned to any retail store.")
+            raise UserError(
+                "Access Denied: Your user profile is not assigned to any retail store."
+            )
 
         is_request_manager = record.store_id == user_store
-        is_supply_manager = user_store.warehouse_id and record.destination_warehouse_id == user_store.warehouse_id
+        is_supply_manager = (
+            user_store.warehouse_id
+            and record.destination_warehouse_id == user_store.warehouse_id
+        )
 
         if not (is_request_manager or is_supply_manager):
             raise UserError(
@@ -299,9 +331,9 @@ class StoreStockRequest(models.Model):
     def action_submit(self):
         """Store Employee & Managers can submit draft requests and generate the internal transfer."""
         if not (
-                self.env.user.has_group("retail_store.group_retail_store_employee")
-                or self.env.user.has_group("retail_store.group_retail_store_manager")
-                or self.env.user.has_group("retail_store.group_retail_administrator")
+            self.env.user.has_group("retail_store.group_retail_store_employee")
+            or self.env.user.has_group("retail_store.group_retail_store_manager")
+            or self.env.user.has_group("retail_store.group_retail_administrator")
         ):
             raise UserError("You do not have permission to submit stock requests.")
 
@@ -309,7 +341,9 @@ class StoreStockRequest(models.Model):
             if record.state != "draft":
                 raise UserError("Only draft requests can be submitted.")
             if not record.line_ids:
-                raise UserError("You cannot submit a stock request without any product lines.")
+                raise UserError(
+                    "You cannot submit a stock request without any product lines."
+                )
 
             # 1. Fetch Internal Transfer Operation Type from Supplying Warehouse
             picking_type = record.destination_warehouse_id.int_type_id
@@ -331,35 +365,47 @@ class StoreStockRequest(models.Model):
             # 3. Build move lines (stock.move) for each line with requested qty > 0
             move_lines = []
             for line in record.line_ids.filtered(lambda l: l.qty_requested > 0.0):
-                move_lines.append((0, 0, {
-                    "product_id": line.product_id.id,
-                    "product_uom_qty": line.qty_requested,
-                    "product_uom": line.uom_id.id,
-                    "picking_id": picking.id,
-                    "location_id": picking.location_id.id,
-                    "location_dest_id": picking.location_dest_id.id,
-                }))
+                move_lines.append(
+                    (
+                        0,
+                        0,
+                        {
+                            "product_id": line.product_id.id,
+                            "product_uom_qty": line.qty_requested,
+                            "product_uom": line.uom_id.id,
+                            "picking_id": picking.id,
+                            "location_id": picking.location_id.id,
+                            "location_dest_id": picking.location_dest_id.id,
+                        },
+                    )
+                )
 
             if not move_lines:
-                raise UserError("Cannot submit request because no items have a requested quantity greater than 0.")
+                raise UserError(
+                    "Cannot submit request because no items have a requested quantity greater than 0."
+                )
 
             # 4. Attach move lines to picking and confirm transfer reservation
             picking.sudo().write({"move_ids": move_lines})
             picking.sudo().action_confirm()
 
             # 5. Link generated picking to stock request record and update state
-            record.write({
-                "picking_id": picking.id,
-                "state": "submitted",
-            })
+            record.write(
+                {
+                    "picking_id": picking.id,
+                    "state": "submitted",
+                }
+            )
 
     def action_reject(self):
         """Store Managers & Administrators can reject submitted requests for their store."""
         if not (
-                self.env.user.has_group("retail_store.group_retail_store_manager")
-                or self.env.user.has_group("retail_store.group_retail_administrator")
+            self.env.user.has_group("retail_store.group_retail_store_manager")
+            or self.env.user.has_group("retail_store.group_retail_administrator")
         ):
-            raise UserError("Only Store Managers or Administrators can reject stock requests.")
+            raise UserError(
+                "Only Store Managers or Administrators can reject stock requests."
+            )
 
         for record in self:
             self._validate_manager_access(record)
@@ -370,21 +416,27 @@ class StoreStockRequest(models.Model):
     def action_approve(self):
         """Store Managers & Admins can approve submitted requests ONLY AFTER warehouse validation."""
         if not (
-                self.env.user.has_group("retail_store.group_retail_store_manager")
-                or self.env.user.has_group("retail_store.group_retail_administrator")
+            self.env.user.has_group("retail_store.group_retail_store_manager")
+            or self.env.user.has_group("retail_store.group_retail_administrator")
         ):
-            raise UserError("Only Store Managers or Administrators can approve stock requests.")
+            raise UserError(
+                "Only Store Managers or Administrators can approve stock requests."
+            )
 
         current_user = self.env.user
-        is_admin = current_user.has_group("retail_store.group_retail_administrator") or current_user.has_group(
-            "base.group_system")
+        is_admin = current_user.has_group(
+            "retail_store.group_retail_administrator"
+        ) or current_user.has_group("base.group_system")
 
         for record in self:
             self._validate_manager_access(record)
 
             # BUG FIX 1: Enforce Supplying Warehouse Manager Check
-            user_warehouse = current_user.store_id.warehouse_id if hasattr(current_user,
-                                                                           "store_id") and current_user.store_id else False
+            user_warehouse = (
+                current_user.store_id.warehouse_id
+                if hasattr(current_user, "store_id") and current_user.store_id
+                else False
+            )
             supplying_warehouse = record.destination_warehouse_id
             if not is_admin:
                 if not user_warehouse or user_warehouse != supplying_warehouse:
@@ -420,11 +472,19 @@ class StoreStockRequest(models.Model):
             if not record.purchase_order_id:
                 source_location = record.destination_warehouse_id.lot_stock_id
                 for line in record.line_ids.filtered(lambda l: l.qty_approved > 0.0):
-                    quants = self.env["stock.quant"].sudo().search([
-                        ("product_id", "=", line.product_id.id),
-                        ("location_id", "child_of", source_location.id)
-                    ])
-                    available_qty = sum(quants.mapped("quantity")) - sum(quants.mapped("reserved_quantity"))
+                    quants = (
+                        self.env["stock.quant"]
+                        .sudo()
+                        .search(
+                            [
+                                ("product_id", "=", line.product_id.id),
+                                ("location_id", "child_of", source_location.id),
+                            ]
+                        )
+                    )
+                    available_qty = sum(quants.mapped("quantity")) - sum(
+                        quants.mapped("reserved_quantity")
+                    )
 
                     if available_qty < line.qty_approved:
                         raise UserError(
@@ -439,10 +499,12 @@ class StoreStockRequest(models.Model):
     def action_done(self):
         """Warehouse Staff & Administrators can mark approved requests as Done."""
         if not (
-                self.env.user.has_group("retail_store.group_retail_warehouse_staff")
-                or self.env.user.has_group("retail_store.group_retail_administrator")
+            self.env.user.has_group("retail_store.group_retail_warehouse_staff")
+            or self.env.user.has_group("retail_store.group_retail_administrator")
         ):
-            raise UserError("Only Warehouse Staff or Administrators can complete stock requests.")
+            raise UserError(
+                "Only Warehouse Staff or Administrators can complete stock requests."
+            )
 
         is_admin = self.env.user.has_group("retail_store.group_retail_administrator")
         user_warehouse = self.env.user.store_id.warehouse_id
@@ -456,13 +518,12 @@ class StoreStockRequest(models.Model):
                     )
                 if record.destination_warehouse_id != user_warehouse:
                     raise UserError(
-                        f"Access Denied: You are assigned to 'user_warehouse.name',"
-                        f"but this request is being supplied by 'record.destination_warehouse_id.name'."
+                        "Access Denied: You are assigned to 'user_warehouse.name',"
+                        "but this request is being supplied by 'record.destination_warehouse_id.name'."
                     )
 
             if record.state != "approved":
                 raise UserError("Only approved requests can be marked as done.")
-
 
             # =====
             # PHASE 4 LOGIC: State Synchronization Check
@@ -480,24 +541,30 @@ class StoreStockRequest(models.Model):
     def action_cancel(self):
         """Store Managers & Administrators can cancel requests for their store."""
         if not (
-                self.env.user.has_group("retail_store.group_retail_store_manager")
-                or self.env.user.has_group("retail_store.group_retail_administrator")
+            self.env.user.has_group("retail_store.group_retail_store_manager")
+            or self.env.user.has_group("retail_store.group_retail_administrator")
         ):
-            raise UserError("Only Store Managers or Administrators can cancel stock requests.")
+            raise UserError(
+                "Only Store Managers or Administrators can cancel stock requests."
+            )
 
         for record in self:
             self._validate_manager_access(record)
             if record.state == "done":
-                raise UserError("You cannot cancel a request that is already marked as Done.")
+                raise UserError(
+                    "You cannot cancel a request that is already marked as Done."
+                )
             record.write({"state": "cancel"})
 
     def action_draft(self):
         """Store Managers & Administrators can reset requests back to draft state for their store."""
         if not (
-                self.env.user.has_group("retail_store.group_retail_store_manager")
-                or self.env.user.has_group("retail_store.group_retail_administrator")
+            self.env.user.has_group("retail_store.group_retail_store_manager")
+            or self.env.user.has_group("retail_store.group_retail_administrator")
         ):
-            raise UserError("Only Store Managers or Administrators can reset requests to draft.")
+            raise UserError(
+                "Only Store Managers or Administrators can reset requests to draft."
+            )
 
         for record in self:
             self._validate_manager_access(record)
@@ -506,21 +573,22 @@ class StoreStockRequest(models.Model):
     # =====
     # PHASE 4 ADDITION: Smart Button Navigation Action
     # =====
+    # remove the comment if there is error
+    # def action_show_picking(self):
+    #     """Opens the single linked stock.picking record in standard Odoo form view."""
+    #     self.ensure_one()
+    #     if not self.picking_id:
+    #         raise UserError("No stock transfer order is linked to this request.")
+    #
+    #     return {
+    #         "name": "Stock Transfer",
+    #         "type": "ir.actions.act_window",
+    #         "res_model": "stock.picking",
+    #         "res_id": self.picking_id.id,
+    #         "view_mode": "form",
+    #         "target": "current",
+    #     }
 
-    def action_show_picking(self):
-        """Opens the single linked stock.picking record in standard Odoo form view."""
-        self.ensure_one()
-        if not self.picking_id:
-            raise UserError("No stock transfer order is linked to this request.")
-
-        return {
-            "name": "Stock Transfer",
-            "type": "ir.actions.act_window",
-            "res_model": "stock.picking",
-            "res_id": self.picking_id.id,
-            "view_mode": "form",
-            "target": "current",
-        }
 
 class StoreStockRequestLine(models.Model):
     _name = "store.stock.request.line"
@@ -547,10 +615,7 @@ class StoreStockRequestLine(models.Model):
         string="Approved Qty",
         default=0.0,
     )
-    allowed_uom_ids = fields.Many2many(
-        'uom.uom',
-        compute='_compute_allowed_uom_ids'
-    )
+    allowed_uom_ids = fields.Many2many("uom.uom", compute="_compute_allowed_uom_ids")
     uom_id = fields.Many2one(
         "uom.uom",
         string="Unit of Measure",
@@ -572,14 +637,15 @@ class StoreStockRequestLine(models.Model):
                 reference_uom = base_uom.relative_uom_id or base_uom
 
                 # Find all units in the system that share this same reference unit family
-                line.allowed_uom_ids = self.env['uom.uom'].search([
-                    '|',
-                    ('id', '=', reference_uom.id),
-                    ('relative_uom_id', '=', reference_uom.id)
-                ])
+                line.allowed_uom_ids = self.env["uom.uom"].search(
+                    [
+                        "|",
+                        ("id", "=", reference_uom.id),
+                        ("relative_uom_id", "=", reference_uom.id),
+                    ]
+                )
             else:
-                line.allowed_uom_ids = self.env['uom.uom'].browse()
-
+                line.allowed_uom_ids = self.env["uom.uom"].browse()
 
     @api.depends("product_id")
     def _compute_uom_id(self):
@@ -597,6 +663,8 @@ class StoreStockRequestLine(models.Model):
             if line.product_id and line.uom_id:
                 if line.uom_id not in line.allowed_uom_ids:
                     raise ValidationError(
-                        _("The Unit of Measure '%s' is not compatible with product '%s'.")
+                        _(
+                            "The Unit of Measure '%s' is not compatible with product '%s'."
+                        )
                         % (line.uom_id.name, line.product_id.name)
                     )

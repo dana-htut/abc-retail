@@ -1,5 +1,5 @@
-from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError, UserError
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError, ValidationError
 
 
 class StoreReorderRule(models.Model):
@@ -22,7 +22,7 @@ class StoreReorderRule(models.Model):
         "product.product",
         string="Product",
         required=True,
-        domain="[('type', 'in', ['product', 'consu'])]"
+        domain="[('type', 'in', ['product', 'consu'])]",
     )
     min_qty = fields.Float(
         string="Minimum Stock",
@@ -52,9 +52,9 @@ class StoreReorderRule(models.Model):
 
     _sql_constraints = [
         (
-          "unique_store_product",
-          "unique(store_id, product_id)",
-          "A reorder rule already exists for this product at this store!",
+            "unique_store_product",
+            "unique(store_id, product_id)",
+            "A reorder rule already exists for this product at this store!",
         ),
     ]
 
@@ -76,15 +76,17 @@ class StoreReorderRule(models.Model):
                 warehouse = rule.store_id.warehouse_id
             else:
                 # Fallback to searching warehouse linked to the store/company
-                warehouse = self.env["stock.warehouse"].search([
-                    ("company_id", "=", rule.store_id.id)
-                ], limit=1)
+                warehouse = self.env["stock.warehouse"].search(
+                    [("company_id", "=", rule.store_id.id)], limit=1
+                )
 
             if warehouse and warehouse.lot_stock_id and rule.product_id:
-                quants = self.env["stock.quant"].search([
-                    ("product_id", "=", rule.product_id.id),
-                    ("location_id", "child_of", warehouse.lot_stock_id.id),
-                ])
+                quants = self.env["stock.quant"].search(
+                    [
+                        ("product_id", "=", rule.product_id.id),
+                        ("location_id", "child_of", warehouse.lot_stock_id.id),
+                    ]
+                )
                 rule.current_qty = sum(quants.mapped("quantity"))
             else:
                 rule.current_qty = 0.0
@@ -108,7 +110,9 @@ class StoreReorderRule(models.Model):
                 raise ValidationError(_("Stock thresholds cannot be negative."))
             if rule.min_qty >= rule.max_qty:
                 raise ValidationError(
-                    _("Minimum stock (%s) must be strictly less than Maximum stock (%s).")
+                    _(
+                        "Minimum stock (%s) must be strictly less than Maximum stock (%s)."
+                    )
                     % (rule.min_qty, rule.max_qty)
                 )
 
@@ -123,11 +127,13 @@ class StoreReorderRule(models.Model):
         # Active states where requested stock is currently pending/in progress
         active_states = ["draft", "submitted", "approved"]
 
-        lines = self.env["store.stock.request.line"].search([
-            ("request_id.store_id", "=", self.store_id.id),
-            ("request_id.state", "in", active_states),
-            ("product_id", "=", self.product_id.id),
-        ])
+        lines = self.env["store.stock.request.line"].search(
+            [
+                ("request_id.store_id", "=", self.store_id.id),
+                ("request_id.state", "in", active_states),
+                ("product_id", "=", self.product_id.id),
+            ]
+        )
 
         return sum(lines.mapped("qty_requested"))
 
@@ -202,7 +208,7 @@ class StoreReorderRule(models.Model):
                         0,
                         0,
                         {
-                          "product_id": rule.product_id.id,
+                            "product_id": rule.product_id.id,
                             "qty_requested": required_qty,
                         },
                     )
@@ -217,7 +223,9 @@ class StoreReorderRule(models.Model):
                 new_request = self.env["store.stock.request"].create(
                     {
                         "store_id": store.id,
-                        "destination_warehouse_id": central_warehouse.id if central_warehouse else False,
+                        "destination_warehouse_id": central_warehouse.id
+                        if central_warehouse
+                        else False,
                         "state": "draft",
                         "line_ids": request_lines,
                     }
@@ -234,7 +242,9 @@ class StoreReorderRule(models.Model):
             "name": _("Generated Stock Requests"),
             "type": "ir.actions.act_window",
             "res_model": "store.stock.request",
-            "view_mode": "list,form" if len(created_or_updated_requests) > 1 else "form",
+            "view_mode": "list,form"
+            if len(created_or_updated_requests) > 1
+            else "form",
             "res_id": (
                 created_or_updated_requests.id
                 if len(created_or_updated_requests) == 1

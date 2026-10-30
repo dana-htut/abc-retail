@@ -23,7 +23,7 @@
         "views/retail_dashboard_views.xml",
         "wizards/stock_replenishment_wizard_views.xml",
     ],
-    "assets" : {
+    "assets": {
         "web.assets_backend": [
             "retail_store/static/src/js/store_row.js",
             "retail_store/static/src/components/retail_dashboard.js",
