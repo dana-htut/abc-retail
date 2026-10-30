@@ -1,0 +1,28 @@
+name: Ruff Code Quality CI
+
+on:
+  pull_request:
+    branches: [ main, dev ]
+  push:
+    branches: [ dev ]
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff Format Check
+        run: ruff format --check custom_addons/retail_store/
+
+      - name: Run Ruff Linter
+        run: ruff check custom_addons/retail_store/
