@@ -33,3 +33,17 @@ Custom Odoo 19 module designed to streamline multi-store inventory replenishment
 
 * **Technology Stack:** Built on **Odoo 19**, powered by **Python 3.12** backend models and **PostgreSQL** relational data management. The user interface incorporates custom **JavaScript / OWL (Odoo Web Library)** components for responsive, real-time data visualization.
 * **Automated CI/CD Pipeline:** Integrated **GitHub Actions** (`ruff.yml`) to enforce code standards automatically. Every pull request and push to integration branches runs static analysis and format validation via **Ruff**, ensuring clean, production-ready code before any merge to main.
+
+## 💻 Installation & Local Setup
+
+To clone and run code checks locally on your machine, follow these steps:
+
+```bash
+# Clone the repository
+git clone [https://github.com/dana-htut/abc_retail.git](https://github.com/dana-htut/abc_retail.git)
+
+# Navigate into the project directory
+cd abc_retail
+
+# Run local ruff checks
+ruff check custom_addons/retail_store/
