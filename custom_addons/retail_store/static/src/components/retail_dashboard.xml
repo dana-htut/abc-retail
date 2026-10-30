@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <templates xml:space="preserve">
     <t t-name="retail_store.RetailDashboard">
-        <div class="o_retail_dashboard container-fluid p-4 bg-view">
-            <!-- Header Title-->
-            <div class="row mb-4">
+        <div class="o_retail_dashboard container-fluid p-4 pb-5 mb-5 bg-view" style="height: 100vh; overflow-y: auto;">
+            <!-- Header Title -->
+            <div class="row mb-4 align-items-center">
                 <div class="col">
-                    <h1 class="text-primary fw-bold"> Retail Management Dashboard</h1>
-                    <p class="text-muted">Central command center for multi-store inventory and stock requests.</p>
+                    <h1 class="text-primary fw-bold mb-1">Retail Management Dashboard</h1>
+                    <p class="text-muted mb-0">Central command center for multi-store inventory and stock requests.</p>
                 </div>
             </div>
 
@@ -14,34 +14,187 @@
             <div class="row row-cols-1 row-cols-md-4 g-4 mb-4">
                 <!-- Total Stores Card -->
                 <div class="col">
-                    <div class="card shadow-sm border-0 bg-white p-3">
-                        <div class="text-muted small fw-bold text-uppercase">Stores</div>
+                    <div class="card shadow-sm border-0 bg-white p-3 rounded-3 border-start border-primary border-4">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Stores</div>
                         <div class="fs-2 fw-bold text-dark" t-esc="state.kpis.total_stores">0</div>
                     </div>
                 </div>
                 <!-- Total Requests Card -->
                 <div class="col">
-                    <div class="card shadow-sm border-0 bg-white p-3">
-                        <div class="text-muted small fw-bold text-uppercase">Requests</div>
+                    <div class="card shadow-sm border-0 bg-white p-3 rounded-3 border-start border-info border-4">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Requests</div>
                         <div class="fs-2 fw-bold text-primary" t-esc="state.kpis.total_requests">0</div>
                     </div>
                 </div>
                 <!-- Pending Approvals Card -->
                 <div class="col">
-                    <div class="card shadow-sm border-0 bg-white p-3">
-                        <div class="card shadow-sm border-0 bg-white p-3">Pending Approvals</div>
+                    <div class="card shadow-sm border-0 bg-white p-3 rounded-3 border-start border-warning border-4">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Pending Approvals</div>
                         <div class="fs-2 fw-bold text-warning" t-esc="state.kpis.pending_approvals">0</div>
                     </div>
                 </div>
                 <!-- Low Stock Products Card -->
                 <div class="col">
-                    <div class="card shadow-sm border-0 bg-white p-3">
-                        <div class="text-muted small fw-bold text-uppercase">Low Stock</div>
+                    <div class="card shadow-sm border-0 bg-white p-3 rounded-3 border-start border-danger border-4">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Low Stock</div>
                         <div class="fs-2 fw-bold text-danger" t-esc="state.kpis.low_stock">0</div>
                     </div>
                 </div>
             </div>
-            <!-- -->
+
+            <!-- TASK 3.2: SEARCH & FILTER TOOLBAR -->
+            <div class="row mb-4 align-items-center g-3">
+                <!-- Live Search Input Box -->
+                <div class="col-lg-5 col-md-6">
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-end-0 text-muted">🔍</span>
+                        <input type="text"
+                        class="form-control border-start-0 ps-0"
+                        placeholder="Search requests by ID, store, or employee..."
+                        t-model="state.searchQuery"
+                        t-on-keyup="onSearchKeyup"/>
+                    </div>
+                </div>
+
+                <!-- State Filter Pills -->
+                <div class="col-lg-7 col-md-6 text-md-end">
+                    <div class="btn-group shadow-sm flex-wrap" role="group" aria-label="State Filters">
+                        <button type="button"
+                        class="btn btn-sm px-3"
+                        t-att-class="state.activeFilter === 'all' ? 'active btn-secondary text-white fw-semibold' : 'btn-outline-secondary bg-white'"
+                        t-on-click="() => this.filterRequests('all')">
+                            All
+                        </button>
+                        <button type="button"
+                        class="btn btn-sm px-3"
+                        t-att-class="state.activeFilter === 'draft' ? 'active btn-secondary text-white fw-semibold' : 'btn-outline-secondary bg-white'"
+                        t-on-click="() => this.filterRequests('draft')">
+                            Draft
+                        </button>
+                        <button type="button"
+                        class="btn btn-sm px-3"
+                        t-att-class="state.activeFilter === 'submitted' ? 'active btn-secondary text-white fw-semibold' : 'btn-outline-secondary bg-white'"
+                        t-on-click="() => this.filterRequests('submitted')">
+                            Submitted
+                        </button>
+                        <button type="button"
+                        class="btn btn-sm px-3"
+                        t-att-class="state.activeFilter === 'approved' ? 'active btn-secondary text-white fw-semibold' : 'btn-outline-secondary bg-white'"
+                        t-on-click="() => this.filterRequests('approved')">
+                            Approved
+                        </button>
+                        <button type="button"
+                        class="btn btn-sm px-3"
+                        t-att-class="state.activeFilter === 'rejected' ? 'active btn-secondary text-white fw-semibold' : 'btn-outline-secondary bg-white'"
+                        t-on-click="() => this.filterRequests('rejected')">
+                            Rejected
+                        </button>
+                        <button type="button"
+                        class="btn btn-sm px-3"
+                        t-att-class="state.activeFilter === 'done' ? 'active btn-secondary text-white fw-semibold' : 'btn-outline-secondary bg-white'"
+                        t-on-click="() => this.filterRequests('done')">
+                            Done
+                        </button>
+                        <button type="button"
+                        class="btn btn-sm px-3"
+                        t-att-class="state.activeFilter === 'cancel' ? 'active btn-secondary text-white fw-semibold' : 'btn-outline-secondary bg-white'"
+                        t-on-click="() => this.filterRequests('cancel')">
+                            Cancelled
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TASK 3.3: INTERACTIVE DATA TABLE -->
+            <div class="card shadow-sm border-0 bg-white rounded-3 overflow-hidden">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light text-uppercase fs-7 text-muted">
+                                <tr>
+                                    <th class="py-3 ps-3">Request ID</th>
+                                    <th class="py-3">Store</th>
+                                    <th class="py-3">Employee</th>
+                                    <th class="py-3">Request Date</th>
+                                    <th class="py-3">State</th>
+                                    <th class="py-3 text-end pe-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Iterate through stock request records using t-foreach -->
+                                <t t-foreach="state.filteredRequests" t-as="record" t-key="record.id">
+                                    <tr>
+                                        <!-- Request ID / Name -->
+                                        <td class="ps-3 fw-bold text-primary" t-esc="record.name"/>
+
+                                        <!-- Store Name (Many2one tuple: [id, name]) -->
+                                        <td>
+                                            <t t-if="record.store_id" t-esc="record.store_id[1]"/>
+                                            <t t-else="">-</t>
+                                        </td>
+
+                                        <!-- Employee Name (Many2one tuple: [id, name]) -->
+                                        <td>
+                                            <t t-if="record.employee_id" t-esc="record.employee_id[1]"/>
+                                            <t t-else="">-</t>
+                                        </td>
+
+                                        <!-- Request Date -->
+                                        <td class="text-muted" t-esc="record.request_date"/>
+
+                                        <!-- State Badge (Aligned with Python model states) -->
+                                        <td>
+                                            <span class="badge px-2 py-1"
+                                            t-att-class="{
+                                                'bg-secondary': record.state === 'draft',
+                                                'bg-info text-dark': record.state === 'submitted',
+                                                'bg-success': record.state === 'approved',
+                                                'bg-danger': record.state === 'rejected',
+                                                'bg-primary': record.state === 'done',
+                                                'bg-warning text-dark': record.state === 'cancel'
+                                            }"
+                                            t-esc="record.state.toUpperCase()"/>
+                                        </td>
+
+                                        <!-- Row Action Buttons -->
+                                        <td class="text-end pe-3">
+                                            <button class="btn btn-sm btn-outline-primary me-1 px-3 shadow-sm"
+                                            t-on-click="() => this.viewRecord(record.id)">
+                                                View
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger px-2 shadow-sm"
+                                            t-on-click="() => this.deleteRecord(record.id)">
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <!-- Empty state if no records found -->
+                                <t t-if="state.filteredRequests.length === 0">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5 text-muted">
+                                            <div class="py-3">
+                                                <p class="mb-1 fw-semibold">No stock requests found matching your filter.</p>
+                                                <small class="text-muted">Try adjusting your search query or state filter.</small>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Request Action Button Bar -->
+            <div class="row mt-4">
+                <div class="col text-end">
+                    <button class="btn btn-primary px-4 py-2 shadow-sm fw-semibold" t-on-click="createNewRequest">
+                        + Create Request
+                    </button>
+                </div>
+            </div>
+
         </div>
     </t>
 </templates>
