@@ -24,6 +24,8 @@ export class RetailDashboard extends Component {
             },
             // Array to store the stock request records loaded from the backend
             request: [],
+            // Filtered list displayed in the data table
+            filteredRequests: [],
             // Reactive search query string bound to the search input box
             searchQuery: "",
             // Current active state filter pill ("all", "draft", "submitted", etc.)
@@ -39,9 +41,6 @@ export class RetailDashboard extends Component {
     // Asynchronous helper function to query Odoo models viat the ORM service.
     async loadDashboardData() {
         try {
-            // DEBUGGER 1: Check if the method starts and ORM service is ready
-            debugger;
-
             // 1. Fetch total count of retail store records
             const storeCount = await this.orm.searchCount("retail.store", []);
 
@@ -67,7 +66,6 @@ export class RetailDashboard extends Component {
             ).length;
 
             // DEBUGGER 2: Check the fetched numbers before assigning to state
-            debugger;
 
             // Update the reactive KPI state object with fetched numbers
             this.state.kpis = {
@@ -85,16 +83,84 @@ export class RetailDashboard extends Component {
             );
 
             // DEBUGGER 3: Check final state requests array
-            debugger;
+            this.applyFilters();
 
         } catch (error) {
             // DEBUGGER 4: If an ORM error occurs, code jumps straight here.
             // Inspect the `error` object in your browser console!
-            debugger;
             console.error("Dashboard Load Error:", error);
 
             // Display an error notification toast if the ORM call fails
             this.notification.add("Failed to load dashboard data from backend.", { type: "danger" });
+        }
+    }
+
+    // Task 4.1: Handle State Filter Pills ("all", "draft", "submitted", "approved", "rejected", "done", "cancel")
+    filterRequests(stateName) {
+        this.state.activeFilter = stateName;
+        this.applyFilters();
+    }
+
+    // Task 4.2: Handle Live Search Input on Keyup
+    onSearchKeyup(ev) {
+        this.state.searchQuery = ev.target.value.toLowerCase();
+        this.applyFilters();
+    }
+
+    // Combining filtering logic for both state pills and live search query
+    applyFilters() {
+        let result = this.state.requests;
+        //Filter by state if not "all"
+        if (this.state.activeFilter != "all") {
+            result = result.filter(r => r.state && r.state.toLowerCase() === this.state.activeFilter.toLowerCase());
+        }
+
+        // Filter by search query (Name, Store Name, Employee Name)
+        if (this.state.searchQuery) {
+            const query = this.state.searchQuery;
+            result = result.filter(r => {
+                const nameMatch = r.name && r.name.toLowerCase().includes(query);
+                const storeMatch = r.store_id && r.store_id[1].toLowerCase().includes(query);
+                const employeeMatch = r.employee_id && r.employee_id[1].toLowerCase().includes(query);
+                return nameMatch || storeMatch || employeeMatch;
+            });
+        }
+
+        this.state.filteredRequests = result;
+    }
+
+    // Task 4.3: Open existing stock requests record in standard form view
+    async viewRecord(recordId) {
+        await this.actionService.doAction({
+           type: "ir.actions.act_window",
+           res_model: "store.stock.request",
+           res_id: recordId,
+           views: [[false, "form"]],
+           target: "current",
+        });
+    }
+
+    // Task 4.4: Open form view to create a brand new stock request
+    async createNewRequest() {
+        await this.actionService.doAction({
+            type: "ir.actions.act_window",
+            res_model: "store.stock.request",
+            views: [[false, "form"]],
+            target: "current",
+        });
+    }
+
+    // Task 4.5: Delete record via ORM with notification and refresh
+    async deleteRecord(recordId) {
+        if (window.confirm("Are you sure you want to delete this stock request?")) {
+            try {
+                await this.orm.unlink("store.stock.request", [recordId]);
+                this.notification.add("Stock request deleted successfully.", {type: "success"});
+                // Reload dashboard data to refresh KPIs and tables
+                await this.loadDashboardData();
+            } catch (error) {
+                this.notification.add("Failed to delete record.", {type:"danger"});
+            }
         }
     }
 }
