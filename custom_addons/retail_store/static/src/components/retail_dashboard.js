@@ -4,6 +4,7 @@
 import {registry} from "@web/core/registry";
 import {Component, useState, onWillStart} from "@odoo/owl";
 import {useService} from "@web/core/utils/hooks";
+import {ConfirmationDialog} from "@web/core/confirmation_dialog/confirmation_dialog";
 
 export class RetailDashboard extends Component {
     setup() {
@@ -11,6 +12,9 @@ export class RetailDashboard extends Component {
         this.orm = useService("orm"); // For calling model methods, searchRead, searchCount
         this.actionService = useService("action"); // For opening view dynamically
         this.notification = useService("notification"); // For popup toast alerts
+
+        // 5.1: Initialize the dialog service
+        this.dialog = useService("dialog");
 
         // Define the reactive state using useState.
         // Any changes to these properties will automatically trigger a UI re-render.
@@ -152,17 +156,38 @@ export class RetailDashboard extends Component {
 
     // Task 4.5: Delete record via ORM with notification and refresh
     async deleteRecord(recordId) {
-        if (window.confirm("Are you sure you want to delete this stock request?")) {
-            try {
-                await this.orm.unlink("store.stock.request", [recordId]);
-                this.notification.add("Stock request deleted successfully.", {type: "success"});
-                // Reload dashboard data to refresh KPIs and tables
-                await this.loadDashboardData();
-            } catch (error) {
-                this.notification.add("Failed to delete record.", {type:"danger"});
-            }
-        }
+        // Trigger Odoo's built-in confirmationdialog modal service
+        this.dialog.add(ConfirmationDialog, {
+           // Title displayed at the top of the modal window
+           title: "Delete Confirmation",
+
+           // Warning body text explaining the consequence of the action
+           body: "Are you sure you want to delete this stock request? This action cannot be undone.",
+
+           // Callback function executed when the user clicks the confirmation button
+           confirm: async() => {
+               try {
+                   // call orm unlink method
+                   await this.orm.unlink("store.stock.request", [recordId]);
+                   //display green success
+                   this.notification.add("Stock request deleted successfully.", {type:"success"});
+                   // Reload dashboard data to refresh KPIs, total counts, and the data table
+                   await this.loadDashboardData();
+               } catch (error) {
+                    console.error("Delete Error:", error)
+                    // Display red error
+                   this.notification.add("Failed to delete record.", {type: "danger"});
+               }
+           },
+            // callback if the user cancels the modal
+            cancel: () => {},
+            // custom label for primary action button
+            confirmLabel: "Delete",
+            // Bootstrap styling
+            confirmClass: "btn-danger",
+        });
     }
+
 }
 
 // TEMPLATE MAPPING & ACTION REGISTRATION

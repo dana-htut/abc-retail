@@ -1,0 +1,42 @@
+# Target Python version for Odoo 19
+target-version = "py312"
+
+# Standard Odoo line length limit
+line-length = 88
+
+# Files/Directories to exclude from linting
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    ".venv",
+]
+
+[lint]
+# Select rules to enforce:
+# E: Pycodestyle errors
+# F: Pyflakes (catches unused imports, undefined variables)
+# W: Pycodestyle warnings
+# I: isort (organizes import statements cleanly)
+# B: flake8-bugbear (catches common bugs)
+select = ["E", "F", "W", "I", "B"]
+
+# Ignore rules that conflict with Odoo conventions
+ignore = [
+    "E501", # Line too long (handled by ruff format)
+    "B008", # Function call in default argument (common in Odoo fields/methods)
+]
+
+# Allow unused variables if prefixed with an underscore
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[lint.per-file-ignores]
+# Ignore unused imports in __init__.py files since they expose models/controllers
+"__init__.py" = ["F401"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
